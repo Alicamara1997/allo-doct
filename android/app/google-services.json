@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1057573798323",
+    "project_id": "allo-doct",
+    "storage_bucket": "allo-doct.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1057573798323:android:172dffd3cb6206b8f5cbc6",
+        "android_client_info": {
+          "package_name": "com.allodoct.allo_doct"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDg-ou6j9YKPpqYv2Zl2SIsqQdqSciksps"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
