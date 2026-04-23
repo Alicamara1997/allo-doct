@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/constants/colors.dart';
 
@@ -16,6 +18,7 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _photoUrlController = TextEditingController();
   bool _isLoading = false;
 
   @override
@@ -26,7 +29,7 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
       final user = context.read<AuthProvider>().currentUser;
       if (user != null) {
         _nameController.text = user.name;
-        // Optionally fetch phone from firestore if we had it, but we'll leave blank if none.
+        _photoUrlController.text = user.photoUrl ?? '';
       }
     });
   }
@@ -41,22 +44,65 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
         await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
           'name': _nameController.text.trim(),
           'phone': _phoneController.text.trim(),
+          'photoUrl': _photoUrlController.text.trim(),
         });
         
         // Refresh AuthProvider logic can simply be re-authenticating or updating local model.
         // For simplicity we show success message.
-        if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('Profil mis à jour'), backgroundColor: AppColors.success),
-           );
-           context.pop();
-        }
+         if (mounted) {
+            // Rafraîchir les données locales
+            await context.read<AuthProvider>().refreshUser();
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Profil mis à jour'), backgroundColor: AppColors.success),
+            );
+            context.pop();
+         }
       }
     } catch (e) {
       if (mounted) {
          ScaffoldMessenger.of(context).showSnackBar(
              SnackBar(content: Text('Erreur: $e'), backgroundColor: AppColors.error),
          );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    
+    if (image == null) return;
+    
+    setState(() => _isLoading = true);
+    try {
+      final user = context.read<AuthProvider>().currentUser;
+      if (user == null) return;
+
+      final storageRef = FirebaseStorage.instance.ref();
+      final profilePicRef = storageRef.child("profiles/${user.uid}.jpg");
+
+      final bytes = await image.readAsBytes();
+      await profilePicRef.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+      
+      final String downloadUrl = await profilePicRef.getDownloadURL();
+      
+      setState(() {
+        _photoUrlController.text = downloadUrl;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Photo téléchargée !'), backgroundColor: AppColors.success),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur upload: $e'), backgroundColor: AppColors.error),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -93,10 +139,13 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
                       ),
                       child: const Icon(Icons.person, size: 50, color: AppColors.primary),
                     ),
-                    const CircleAvatar(
-                      radius: 16,
-                      backgroundColor: AppColors.secondary,
-                      child: Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                    InkWell(
+                      onTap: _isLoading ? null : _pickAndUploadImage,
+                      child: const CircleAvatar(
+                        radius: 16,
+                        backgroundColor: AppColors.secondary,
+                        child: Icon(Icons.camera_alt, size: 16, color: Colors.white),
+                      ),
                     ),
                   ],
                 ),
@@ -122,6 +171,16 @@ class _PatientEditProfileScreenState extends State<PatientEditProfileScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 keyboardType: TextInputType.phone,
+              ),
+              TextFormField(
+                controller: _photoUrlController,
+                decoration: InputDecoration(
+                  labelText: 'URL de la photo de profil',
+                  prefixIcon: const Icon(Icons.image_outlined),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  hintText: 'https://...',
+                ),
+                keyboardType: TextInputType.url,
               ),
               const SizedBox(height: 32),
               

@@ -5,6 +5,8 @@ class UserModel {
   final String email;
   final String role; // 'patient' or 'practitioner'
   final String name;
+  final String? photoUrl;
+  final String? clinicPhotoUrl;
   final DateTime createdAt;
 
   UserModel({
@@ -12,6 +14,8 @@ class UserModel {
     required this.email,
     required this.role,
     required this.name,
+    this.photoUrl,
+    this.clinicPhotoUrl,
     required this.createdAt,
   });
 
@@ -21,6 +25,8 @@ class UserModel {
       email: data['email'] ?? '',
       role: data['role'] ?? 'patient',
       name: data['name'] ?? '',
+      photoUrl: data['photoUrl'],
+      clinicPhotoUrl: data['clinicPhotoUrl'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -30,6 +36,8 @@ class UserModel {
       'email': email,
       'role': role,
       'name': name,
+      'photoUrl': photoUrl,
+      'clinicPhotoUrl': clinicPhotoUrl,
       'createdAt': createdAt,
     };
   }

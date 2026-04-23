@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/colors.dart';
 
 class PractitionerCard extends StatelessWidget {
@@ -6,6 +7,8 @@ class PractitionerCard extends StatelessWidget {
   final String name;
   final String specialty;
   final double rating;
+  final String? photoUrl;
+  final String? distance;
   final VoidCallback onTap;
 
   const PractitionerCard({
@@ -14,6 +17,8 @@ class PractitionerCard extends StatelessWidget {
     required this.name,
     required this.specialty,
     required this.rating,
+    this.photoUrl,
+    this.distance,
     required this.onTap,
   });
 
@@ -42,16 +47,30 @@ class PractitionerCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Avatar
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
+                // Avatar / Image
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    width: 75,
+                    height: 75,
                     color: AppColors.primaryLight.withAlpha(50),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.person, color: AppColors.primary, size: 35),
+                    child: photoUrl != null && photoUrl!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: photoUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          errorWidget: (context, url, error) => const Icon(Icons.person, color: AppColors.primary, size: 40),
+                        )
+                      : Center(
+                          child: Text(
+                            name.isNotEmpty ? name[0].toUpperCase() : 'P',
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -78,7 +97,7 @@ class PractitionerCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      // Rating & Distance/Info
+                      // Rating & Info
                       Row(
                         children: [
                           const Icon(Icons.star_rounded, color: AppColors.warning, size: 18),
@@ -93,9 +112,9 @@ class PractitionerCard extends StatelessWidget {
                           const SizedBox(width: 16),
                           const Icon(Icons.location_on, color: AppColors.textSecondary, size: 15),
                           const SizedBox(width: 4),
-                          const Text(
-                            'À 2 km',
-                            style: TextStyle(
+                          Text(
+                            distance ?? 'À proximité',
+                            style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondary,
                             ),
@@ -105,6 +124,7 @@ class PractitionerCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                const Icon(Icons.chevron_right, color: Colors.grey),
               ],
             ),
           ),

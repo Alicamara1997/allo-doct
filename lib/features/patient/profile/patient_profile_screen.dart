@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/constants/colors.dart';
 
@@ -73,8 +74,17 @@ class PatientProfileScreen extends StatelessWidget {
                           BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 10),
                         ],
                       ),
-                      child: const Center(
-                        child: Icon(Icons.person, size: 50, color: AppColors.primary),
+                      child: ClipOval(
+                        child: user?.photoUrl != null && user!.photoUrl!.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: user.photoUrl!,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const CircularProgressIndicator(),
+                              errorWidget: (context, url, error) => const Icon(Icons.person, size: 50, color: AppColors.primary),
+                            )
+                          : const Center(
+                              child: Icon(Icons.person, size: 50, color: AppColors.primary),
+                            ),
                       ),
                     ),
                     Container(
