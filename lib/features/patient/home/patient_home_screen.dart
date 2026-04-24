@@ -74,8 +74,44 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
             _userPosition = position;
           });
         }
+      } else {
+        // Fallback sur Paris si refusé
+        if (mounted) {
+          setState(() {
+            _userPosition = Position(
+              latitude: _baseLat,
+              longitude: _baseLng,
+              timestamp: DateTime.now(),
+              accuracy: 0,
+              altitude: 0,
+              heading: 0,
+              speed: 0,
+              speedAccuracy: 0,
+              altitudeAccuracy: 0,
+              headingAccuracy: 0,
+            );
+          });
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      // Fallback sur erreur
+      if (mounted) {
+        setState(() {
+          _userPosition = Position(
+              latitude: _baseLat,
+              longitude: _baseLng,
+              timestamp: DateTime.now(),
+              accuracy: 0,
+              altitude: 0,
+              heading: 0,
+              speed: 0,
+              speedAccuracy: 0,
+              altitudeAccuracy: 0,
+              headingAccuracy: 0,
+            );
+        });
+      }
+    }
   }
 
   @override
@@ -288,9 +324,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     }
     
     if (!_mockGeolocations.containsKey(doctorId)) {
-      // Générer une position aléatoire autour de Paris (rayon de quelques km)
-      double latOff = (_random.nextDouble() - 0.5) * 0.05; // Environ +- 3km
-      double lngOff = (_random.nextDouble() - 0.5) * 0.05;
+      // Générer une position aléatoire plus étalée (rayon de 50km environ)
+      double latOff = (_random.nextDouble() - 0.5) * 0.4; 
+      double lngOff = (_random.nextDouble() - 0.5) * 0.4;
       _mockGeolocations[doctorId] = LatLng(_baseLat + latOff, _baseLng + lngOff);
     }
     return _mockGeolocations[doctorId]!;
@@ -543,7 +579,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 value: _maxDistance,
                 min: 1.0,
                 max: 100.0,
-                divisions: 10,
+                divisions: 100, // Plus de précision
                 activeColor: AppColors.primary,
                 label: '${_maxDistance.toInt()} km',
                 onChanged: (val) => setState(() => _maxDistance = val),
