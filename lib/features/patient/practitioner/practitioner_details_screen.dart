@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/appointment_service.dart';
@@ -94,23 +95,28 @@ class _PractitionerDetailsScreenState extends State<PractitionerDetailsScreen> {
               onPressed: () => context.pop(),
             ),
             flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryLight,
-                  gradient: LinearGradient(
-                    colors: [AppColors.primaryDark, AppColors.primaryLight],
-                    begin: Alignment.bottomRight,
-                    end: Alignment.topLeft,
+              background: widget.practitionerData['clinicPhotoUrl'] != null && widget.practitionerData['clinicPhotoUrl'].toString().isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: widget.practitionerData['clinicPhotoUrl'],
+                    fit: BoxFit.cover,
+                  )
+                : Container(
+                    decoration: const BoxDecoration(
+                      color: AppColors.primaryLight,
+                      gradient: LinearGradient(
+                        colors: [AppColors.primaryDark, AppColors.primaryLight],
+                        begin: Alignment.bottomRight,
+                        end: Alignment.topLeft,
+                      ),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.medical_services_outlined,
+                        size: 100,
+                        color: Colors.white.withAlpha(50),
+                      ),
+                    ),
                   ),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.medical_services_outlined,
-                    size: 100,
-                    color: Colors.white.withAlpha(50),
-                  ),
-                ),
-              ),
             ),
           ),
           
@@ -130,11 +136,31 @@ class _PractitionerDetailsScreenState extends State<PractitionerDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Info Basique
+                    // Avatar Floating over the header
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                            boxShadow: [BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 10)],
+                          ),
+                          child: ClipOval(
+                            child: widget.practitionerData['photoUrl'] != null && widget.practitionerData['photoUrl'].toString().isNotEmpty
+                                ? CachedNetworkImage(
+                                    imageUrl: widget.practitionerData['photoUrl'],
+                                    fit: BoxFit.cover,
+                                  )
+                                : Container(
+                                    color: AppColors.primaryLight,
+                                    child: const Icon(Icons.person, size: 40, color: AppColors.primary),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,6 +207,23 @@ class _PractitionerDetailsScreenState extends State<PractitionerDetailsScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+                    // Clinic Address
+                    if (widget.practitionerData['address'] != null)
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, color: AppColors.primary, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              widget.practitionerData['address'],
+                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     const SizedBox(height: 24),
 
                     // Apropos / Bio

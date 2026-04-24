@@ -8,6 +8,7 @@ import '../../../core/models/appointment_model.dart';
 import '../../../core/constants/colors.dart';
 import '../schedule/practitioner_schedule_screen.dart';
 import '../profile/practitioner_profile_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class PractitionerHomeScreen extends StatefulWidget {
   const PractitionerHomeScreen({super.key});
@@ -222,21 +223,46 @@ class _PractitionerHomeScreenState extends State<PractitionerHomeScreen> {
                   ),
                 ],
               ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(10),
-                      blurRadius: 10,
+              Row(
+                children: [
+                   // Profile Photo
+                  Container(
+                    width: 45,
+                    height: 45,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight.withAlpha(30),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ],
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.logout, color: AppColors.error),
-                  onPressed: () => context.read<AuthProvider>().signOut(),
-                ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: context.watch<AuthProvider>().currentUser?.photoUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: context.watch<AuthProvider>().currentUser!.photoUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => const CircularProgressIndicator(),
+                            errorWidget: (context, url, error) => const Icon(Icons.person, color: AppColors.primary),
+                          )
+                        : const Icon(Icons.person, color: AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(10),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.logout, color: AppColors.error),
+                      onPressed: () => context.read<AuthProvider>().signOut(),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

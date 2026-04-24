@@ -104,16 +104,41 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     ),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.logout, color: Colors.white),
-                    onPressed: () => context.read<AuthProvider>().signOut(),
-                  ),
+                Row(
+                  children: [
+                    // Profile Photo
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: context.watch<AuthProvider>().currentUser?.photoUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: context.watch<AuthProvider>().currentUser!.photoUrl!,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const CircularProgressIndicator(),
+                              errorWidget: (context, url, error) => const Icon(Icons.person, color: Colors.white),
+                            )
+                          : const Icon(Icons.person, color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.logout, color: Colors.white),
+                        onPressed: () => context.read<AuthProvider>().signOut(),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
