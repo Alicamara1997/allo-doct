@@ -10,15 +10,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:signature/signature.dart';
 import 'dart:typed_data';
 import '../../../core/services/pdf_service.dart';
+import '../../../core/constants/medical_data.dart';
+import '../../../core/services/notification_service.dart';
+import '../../../core/models/notification_model.dart';
 
 class PrescriptionCreateScreen extends StatefulWidget {
   final String? patientId;
   final String? patientName;
+  final PrescriptionModel? existingPrescription;
 
   const PrescriptionCreateScreen({
     super.key,
     this.patientId,
     this.patientName,
+    this.existingPrescription,
   });
 
   @override
@@ -47,8 +52,15 @@ class _PrescriptionCreateScreenState extends State<PrescriptionCreateScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedPatientId = widget.patientId;
-    _selectedPatientName = widget.patientName;
+    if (widget.existingPrescription != null) {
+      _selectedPatientId = widget.existingPrescription!.patientId;
+      _selectedPatientName = widget.existingPrescription!.patientName;
+      _noteController.text = widget.existingPrescription!.note ?? '';
+      _medications.addAll(widget.existingPrescription!.medications);
+    } else {
+      _selectedPatientId = widget.patientId;
+      _selectedPatientName = widget.patientName;
+    }
   }
 
   void _addMedication() {
@@ -94,17 +106,19 @@ class _PrescriptionCreateScreenState extends State<PrescriptionCreateScreen> {
       final service = PrescriptionService();
       final pdfService = PrescriptionPDFService();
       
-      // Capturer la signature
-      final Uint8List? signatureBytes = await _signatureController.toPngBytes();
-      if (signatureBytes == null) {
-        setState(() => _isSaving = false);
-        return;
+      // Capturer la signature (seulement si le pad n'est pas vide)
+      Uint8List? signatureBytes;
+      if (!_signatureController.isEmpty) {
+        signatureBytes = await _signatureController.toPngBytes();
       }
 
-      final secureCode = service.generateSecureCode();
+      final secureCode = widget.existingPrescription?.secureCode ?? service.generateSecureCode();
 
-      // Upload Signature et Generer PDF
-      final signatureUrl = await pdfService.uploadSignature(signatureBytes, user.uid);
+      // Upload Signature et Generer PDF (si nouvelle signature)
+      String? signatureUrl = widget.existingPrescription?.signatureUrl;
+      if (signatureBytes != null) {
+        signatureUrl = await pdfService.uploadSignature(signatureBytes, user.uid);
+      }
 
       final tempPrescription = PrescriptionModel(
         patientId: _selectedPatientId!,
@@ -112,14 +126,21 @@ class _PrescriptionCreateScreenState extends State<PrescriptionCreateScreen> {
         practitionerId: user.uid,
         practitionerName: user.name ?? 'Docteur',
         practitionerSpecialty: user.specialty ?? 'Généraliste',
-        date: DateTime.now(),
+        date: widget.existingPrescription?.date ?? DateTime.now(),
         medications: _medications,
         secureCode: secureCode,
         signatureUrl: signatureUrl,
         note: _noteController.text.trim(),
       );
 
-      final pdfUrl = await pdfService.generateAndUploadPDF(tempPrescription, signatureBytes);
+      // Régénérer le PDF si on a les bytes de signature ou si on veut forcer la mise à jour
+      // Note: pour simplifier, on régénère le PDF si signatureBytes est là, 
+      // sinon on pourrait avoir besoin de re-télécharger la signature existante pour refaire le PDF.
+      // Pour l'instant, on dit : "Pour modifier le PDF, vous devez re-signer".
+      String? pdfUrl = widget.existingPrescription?.pdfUrl;
+      if (signatureBytes != null) {
+        pdfUrl = await pdfService.generateAndUploadPDF(tempPrescription, signatureBytes);
+      }
 
       final finalPrescription = PrescriptionModel(
         patientId: tempPrescription.patientId,
@@ -135,11 +156,29 @@ class _PrescriptionCreateScreenState extends State<PrescriptionCreateScreen> {
         note: tempPrescription.note,
       );
 
-      final success = await service.createPrescription(finalPrescription);
+      bool success;
+      if (widget.existingPrescription != null) {
+        success = await service.updatePrescription(widget.existingPrescription!.id!, finalPrescription);
+      } else {
+        success = await service.createPrescription(finalPrescription);
+      }
 
       if (success && mounted) {
+        // Envoyer la notification au patient
+        NotificationService().sendNotification(NotificationModel(
+          userId: _selectedPatientId!,
+          title: widget.existingPrescription != null ? 'Ordonnance modifiée' : 'Nouvelle ordonnance reçue',
+          message: 'Le Dr. ${user.name} a ${widget.existingPrescription != null ? 'mis à jour' : 'rédigé'} votre ordonnance.',
+          type: 'prescription',
+          date: DateTime.now(),
+          data: {'prescriptionId': finalPrescription.secureCode}, // On utilise secureCode comme identifiant unique
+        ));
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ordonnance créée avec succès !'), backgroundColor: AppColors.success),
+          SnackBar(
+            content: Text(widget.existingPrescription != null ? 'Ordonnance mise à jour !' : 'Ordonnance créée avec succès !'), 
+            backgroundColor: AppColors.success
+          ),
         );
         context.pop();
       }
@@ -153,7 +192,7 @@ class _PrescriptionCreateScreenState extends State<PrescriptionCreateScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Nouvelle Ordonnance'),
+        title: Text(widget.existingPrescription != null ? 'Modifier Ordonnance' : 'Nouvelle Ordonnance'),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textMain,
         elevation: 0,
@@ -300,22 +339,75 @@ class _PrescriptionCreateScreenState extends State<PrescriptionCreateScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Ajouter un médicament'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: _medNameController,
-                decoration: const InputDecoration(labelText: 'Nom du médicament'),
+              // Nom du médicament avec Autocomplete
+              Autocomplete<String>(
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text == '') return const Iterable<String>.empty();
+                  return MedicalData.commonMedications.where((String option) {
+                    return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                  });
+                },
+                onSelected: (String selection) => _medNameController.text = selection,
+                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                  // Connect internal controller to our state controller
+                  controller.text = _medNameController.text;
+                  controller.addListener(() => _medNameController.text = controller.text);
+                  return TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    decoration: const InputDecoration(labelText: 'Nom du médicament'),
+                  );
+                },
               ),
-              TextField(
-                controller: _medDosageController,
-                decoration: const InputDecoration(labelText: 'Posologie (ex: 1 matin et soir)'),
+              const SizedBox(height: 12),
+              
+              // Posologie avec Autocomplete
+              Autocomplete<String>(
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text == '') return MedicalData.commonDosages;
+                  return MedicalData.commonDosages.where((String option) {
+                    return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                  });
+                },
+                onSelected: (String selection) => _medDosageController.text = selection,
+                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                  controller.text = _medDosageController.text;
+                  controller.addListener(() => _medDosageController.text = controller.text);
+                  return TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    decoration: const InputDecoration(labelText: 'Posologie (ex: 1 matin et soir)'),
+                  );
+                },
               ),
-              TextField(
-                controller: _medDurationController,
-                decoration: const InputDecoration(labelText: 'Durée (ex: 7 jours)'),
+              const SizedBox(height: 12),
+
+              // Durée avec Autocomplete
+              Autocomplete<String>(
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text == '') return MedicalData.commonDurations;
+                  return MedicalData.commonDurations.where((String option) {
+                    return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                  });
+                },
+                onSelected: (String selection) => _medDurationController.text = selection,
+                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                  controller.text = _medDurationController.text;
+                  controller.addListener(() => _medDurationController.text = controller.text);
+                  return TextField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    decoration: const InputDecoration(labelText: 'Durée (ex: 7 jours)'),
+                  );
+                },
               ),
+              const SizedBox(height: 12),
+
               TextField(
                 controller: _medInstructionsController,
                 decoration: const InputDecoration(labelText: 'Instructions (ex: pendant le repas)'),
@@ -324,8 +416,12 @@ class _PrescriptionCreateScreenState extends State<PrescriptionCreateScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => context.pop(), child: const Text('Annuler')),
-          ElevatedButton(onPressed: _addMedication, child: const Text('Ajouter')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuler')),
+          ElevatedButton(
+            onPressed: () => _addMedication(), 
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+            child: const Text('Ajouter'),
+          ),
         ],
       ),
     );

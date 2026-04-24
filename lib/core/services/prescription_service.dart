@@ -16,6 +16,17 @@ class PrescriptionService {
     }
   }
 
+  // Mettre à jour une ordonnance
+  Future<bool> updatePrescription(String id, PrescriptionModel prescription) async {
+    try {
+      await _db.collection('prescriptions').doc(id).update(prescription.toMap());
+      return true;
+    } catch (e) {
+      print('Erreur mise à jour ordonnance: $e');
+      return false;
+    }
+  }
+
   // Récupérer les ordonnances d'un patient
   Stream<List<PrescriptionModel>> getPatientPrescriptions(String patientId) {
     return _db
@@ -46,6 +57,20 @@ class PrescriptionService {
           list.sort((a, b) => b.date.compareTo(a.date));
           return list;
         });
+  }
+
+  // Récupérer une ordonnance par son code sécurisé
+  Future<PrescriptionModel?> getPrescriptionByCode(String code) async {
+    final query = await _db
+        .collection('prescriptions')
+        .where('secureCode', isEqualTo: code)
+        .limit(1)
+        .get();
+    
+    if (query.docs.isNotEmpty) {
+      return PrescriptionModel.fromFirestore(query.docs.first);
+    }
+    return null;
   }
 
   // Générer un code de sécurité unique (pour le code-barres)

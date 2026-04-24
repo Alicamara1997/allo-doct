@@ -14,6 +14,9 @@ import '../../../shared/widgets/practitioner_card.dart';
 import '../appointments/patient_appointments_screen.dart';
 import '../profile/patient_profile_screen.dart';
 import '../prescriptions/patient_prescriptions_screen.dart';
+import '../notifications/notification_panel.dart';
+import '../../../core/models/notification_model.dart';
+import '../../../core/services/notification_service.dart';
 
 class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
@@ -44,6 +47,18 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   void initState() {
     super.initState();
     _determinePosition();
+    _setupNotificationListener();
+  }
+
+  void _setupNotificationListener() {
+    final user = context.read<AuthProvider>().currentUser;
+    if (user != null) {
+      NotificationService().getNotifications(user.uid).listen((notifications) {
+        if (notifications.isNotEmpty) {
+           // On pourrait ajouter un trigger local ici pour un snackbar
+        }
+      });
+    }
   }
 
   Future<void> _determinePosition() async {
@@ -74,10 +89,14 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: const BoxDecoration(
-        color: AppColors.primary,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF2EAA9B), Color(0xFF1E88E5)], // Gradient style from image
+        ),
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
+          bottomLeft: Radius.circular(36),
+          bottomRight: Radius.circular(36),
         ),
       ),
       child: SafeArea(
@@ -92,7 +111,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Bonjour,',
+                      'Bonjour !',
                       style: TextStyle(color: Colors.white70, fontSize: 16),
                     ),
                     Text(
@@ -107,42 +126,94 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 ),
                 Row(
                   children: [
+                    // Notifications
+                    StreamBuilder<List<NotificationModel>>(
+                      stream: NotificationService().getNotifications(context.read<AuthProvider>().currentUser?.uid ?? ''),
+                      builder: (context, snapshot) {
+                        final unreadCount = snapshot.data?.where((n) => !n.isRead).length ?? 0;
+                        return Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withAlpha(50),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.notifications, color: Colors.white, size: 26),
+                                onPressed: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (context) => NotificationPanel(userId: context.read<AuthProvider>().currentUser?.uid ?? ''),
+                                  );
+                                },
+                              ),
+                            ),
+                            if (unreadCount > 0)
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 1.5),
+                                  ),
+                                  constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                                  child: Text(
+                                    '$unreadCount',
+                                    style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      }
+                    ),
+                    const SizedBox(width: 8),
                     // Profile Photo
                     Container(
-                      width: 50,
-                      height: 50,
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white24, width: 2),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                         child: context.watch<AuthProvider>().currentUser?.photoUrl != null
                           ? CachedNetworkImage(
                               imageUrl: context.watch<AuthProvider>().currentUser!.photoUrl!,
                               fit: BoxFit.cover,
-                              placeholder: (context, url) => const CircularProgressIndicator(),
-                              errorWidget: (context, url, error) => const Icon(Icons.person, color: Colors.white),
                             )
-                          : const Icon(Icons.person, color: Colors.white),
+                          : const Icon(Icons.person, color: Colors.white, size: 20),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.logout, color: Colors.white),
-                        onPressed: () => context.read<AuthProvider>().signOut(),
+                    const SizedBox(width: 8),
+                    // Logout
+                    GestureDetector(
+                      onTap: () => context.read<AuthProvider>().signOut(),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(20),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.logout_rounded, color: Colors.white, size: 18),
                       ),
                     ),
                   ],
                 ),
               ],
             ),
+
             const SizedBox(height: 24),
             // Barre de recherche
             Container(

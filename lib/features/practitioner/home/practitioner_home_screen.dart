@@ -10,6 +10,7 @@ import '../schedule/practitioner_schedule_screen.dart';
 import '../profile/practitioner_profile_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../prescriptions/prescription_create_screen.dart';
+import '../prescriptions/practitioner_prescriptions_screen.dart';
 
 class PractitionerHomeScreen extends StatefulWidget {
   const PractitionerHomeScreen({super.key});
@@ -395,6 +396,7 @@ class _PractitionerHomeScreenState extends State<PractitionerHomeScreen> {
           index: _currentBottomNavIndex,
           children: [
             _buildHomeContent(context, name, user?.uid),
+            const PractitionerPrescriptionsScreen(),
             const PractitionerScheduleScreen(),
             const PractitionerProfileScreen(),
           ],
@@ -428,10 +430,15 @@ class _PractitionerHomeScreenState extends State<PractitionerHomeScreen> {
             showSelectedLabels: true,
             showUnselectedLabels: true,
             elevation: 0,
+            type: BottomNavigationBarType.fixed,
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.dashboard),
                 label: 'Dashboard',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.description_outlined),
+                label: 'Ordonnances',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.calendar_month),
