@@ -7,6 +7,7 @@ class UserModel {
   final String name;
   final String? photoUrl;
   final String? clinicPhotoUrl;
+  final String? specialty;
   final DateTime createdAt;
 
   UserModel({
@@ -16,6 +17,7 @@ class UserModel {
     required this.name,
     this.photoUrl,
     this.clinicPhotoUrl,
+    this.specialty,
     required this.createdAt,
   });
 
@@ -27,6 +29,7 @@ class UserModel {
       name: data['name'] ?? '',
       photoUrl: data['photoUrl'],
       clinicPhotoUrl: data['clinicPhotoUrl'],
+      specialty: data['specialty'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -38,6 +41,7 @@ class UserModel {
       'name': name,
       'photoUrl': photoUrl,
       'clinicPhotoUrl': clinicPhotoUrl,
+      'specialty': specialty,
       'createdAt': createdAt,
     };
   }

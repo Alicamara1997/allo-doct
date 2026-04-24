@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/colors.dart';
 import '../../../core/models/prescription_model.dart';
 
@@ -25,9 +26,14 @@ class PrescriptionDetailScreen extends StatelessWidget {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.print_outlined),
-            onPressed: () {
-              // Futur: Génération PDF
+            icon: const Icon(Icons.download_for_offline_outlined),
+            onPressed: () async {
+               if (prescription.pdfUrl != null) {
+                 final url = Uri.parse(prescription.pdfUrl!);
+                 if (await canLaunchUrl(url)) {
+                   await launchUrl(url);
+                 }
+               }
             },
           ),
         ],
@@ -57,7 +63,7 @@ class PrescriptionDetailScreen extends StatelessWidget {
                         children: [
                           Text(
                             'Dr. ${prescription.practitionerName}',
-                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.black, color: AppColors.primaryDark),
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.primaryDark),
                           ),
                           Text(
                             prescription.practitionerSpecialty,
@@ -115,6 +121,26 @@ class PrescriptionDetailScreen extends StatelessWidget {
                     Text(prescription.note!),
                   ],
                   
+                  const SizedBox(height: 32),
+
+                  // Signature Image
+                  if (prescription.signatureUrl != null) 
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Text('Signature du Praticien', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          Image.network(
+                            prescription.signatureUrl!,
+                            width: 120,
+                            height: 60,
+                            fit: BoxFit.contain,
+                          ),
+                        ],
+                      ),
+                    ),
+
                   const SizedBox(height: 48),
                   
                   // Security Section with Barcode

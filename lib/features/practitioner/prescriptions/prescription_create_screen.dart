@@ -7,6 +7,9 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/models/prescription_model.dart';
 import '../../../core/services/prescription_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:signature/signature.dart';
+import 'dart:typed_data';
+import '../../../core/services/pdf_service.dart';
 
 class PrescriptionCreateScreen extends StatefulWidget {
   final String? patientId;
@@ -27,7 +30,11 @@ class _PrescriptionCreateScreenState extends State<PrescriptionCreateScreen> {
   final List<MedicationModel> _medications = [];
   final _noteController = TextEditingController();
   
-  // Controllers pour le médicament en cours d'ajout
+  final SignatureController _signatureController = SignatureController(
+    penStrokeWidth: 3,
+    penColor: Colors.black,
+    exportBackgroundColor: Colors.white,
+  );
   final _medNameController = TextEditingController();
   final _medDosageController = TextEditingController();
   final _medDurationController = TextEditingController();
@@ -85,9 +92,21 @@ class _PrescriptionCreateScreenState extends State<PrescriptionCreateScreen> {
       if (user == null) return;
 
       final service = PrescriptionService();
+      final pdfService = PrescriptionPDFService();
+      
+      // Capturer la signature
+      final Uint8List? signatureBytes = await _signatureController.toPngBytes();
+      if (signatureBytes == null) {
+        setState(() => _isSaving = false);
+        return;
+      }
+
       final secureCode = service.generateSecureCode();
 
-      final prescription = PrescriptionModel(
+      // Upload Signature et Generer PDF
+      final signatureUrl = await pdfService.uploadSignature(signatureBytes, user.uid);
+
+      final tempPrescription = PrescriptionModel(
         patientId: _selectedPatientId!,
         patientName: _selectedPatientName!,
         practitionerId: user.uid,
@@ -96,10 +115,27 @@ class _PrescriptionCreateScreenState extends State<PrescriptionCreateScreen> {
         date: DateTime.now(),
         medications: _medications,
         secureCode: secureCode,
+        signatureUrl: signatureUrl,
         note: _noteController.text.trim(),
       );
 
-      final success = await service.createPrescription(prescription);
+      final pdfUrl = await pdfService.generateAndUploadPDF(tempPrescription, signatureBytes);
+
+      final finalPrescription = PrescriptionModel(
+        patientId: tempPrescription.patientId,
+        patientName: tempPrescription.patientName,
+        practitionerId: tempPrescription.practitionerId,
+        practitionerName: tempPrescription.practitionerName,
+        practitionerSpecialty: tempPrescription.practitionerSpecialty,
+        date: tempPrescription.date,
+        medications: tempPrescription.medications,
+        secureCode: tempPrescription.secureCode,
+        signatureUrl: signatureUrl,
+        pdfUrl: pdfUrl,
+        note: tempPrescription.note,
+      );
+
+      final success = await service.createPrescription(finalPrescription);
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -197,6 +233,44 @@ class _PrescriptionCreateScreenState extends State<PrescriptionCreateScreen> {
                 decoration: InputDecoration(
                   hintText: 'Conseils supplémentaires...',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Signature Pad
+              const Text(
+                'Signature du Praticien',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      child: Signature(
+                        controller: _signatureController,
+                        height: 150,
+                        backgroundColor: Colors.white,
+                      ),
+                    ),
+                    Container(
+                      color: Colors.grey.shade50,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () => _signatureController.clear(),
+                            child: const Text('Effacer', style: TextStyle(color: AppColors.error)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 48),

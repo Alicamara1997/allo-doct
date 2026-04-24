@@ -21,11 +21,15 @@ class PrescriptionService {
     return _db
         .collection('prescriptions')
         .where('patientId', isEqualTo: patientId)
-        .orderBy('date', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
+        .map((snapshot) {
+          final list = snapshot.docs
             .map((doc) => PrescriptionModel.fromFirestore(doc))
-            .toList());
+            .toList();
+          // Tri côté client pour éviter l'erreur d'index Firestore
+          list.sort((a, b) => b.date.compareTo(a.date));
+          return list;
+        });
   }
 
   // Récupérer les ordonnances d'un praticien (historique)
@@ -33,11 +37,15 @@ class PrescriptionService {
     return _db
         .collection('prescriptions')
         .where('practitionerId', isEqualTo: practitionerId)
-        .orderBy('date', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
+        .map((snapshot) {
+          final list = snapshot.docs
             .map((doc) => PrescriptionModel.fromFirestore(doc))
-            .toList());
+            .toList();
+          // Tri côté client
+          list.sort((a, b) => b.date.compareTo(a.date));
+          return list;
+        });
   }
 
   // Générer un code de sécurité unique (pour le code-barres)

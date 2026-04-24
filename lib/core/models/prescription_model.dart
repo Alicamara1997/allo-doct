@@ -42,6 +42,8 @@ class PrescriptionModel {
   final DateTime date;
   final List<MedicationModel> medications;
   final String secureCode; // Unique code for barcode/QR
+  final String? signatureUrl;
+  final String? pdfUrl;
   final String? note;
 
   PrescriptionModel({
@@ -54,6 +56,8 @@ class PrescriptionModel {
     required this.date,
     required this.medications,
     required this.secureCode,
+    this.signatureUrl,
+    this.pdfUrl,
     this.note,
   });
 
@@ -67,6 +71,8 @@ class PrescriptionModel {
       'date': Timestamp.fromDate(date),
       'medications': medications.map((m) => m.toMap()).toList(),
       'secureCode': secureCode,
+      'signatureUrl': signatureUrl,
+      'pdfUrl': pdfUrl,
       'note': note,
     };
   }
@@ -85,6 +91,8 @@ class PrescriptionModel {
           .map((m) => MedicationModel.fromMap(m as Map<String, dynamic>))
           .toList(),
       secureCode: data['secureCode'] ?? '',
+      signatureUrl: data['signatureUrl'],
+      pdfUrl: data['pdfUrl'],
       note: data['note'],
     );
   }
