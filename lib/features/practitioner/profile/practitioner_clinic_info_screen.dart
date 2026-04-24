@@ -115,7 +115,21 @@ class _PractitionerClinicInfoScreenState extends State<PractitionerClinicInfoScr
         
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
-          if (data.containsKey('display_name')) {
+          if (data.containsKey('address')) {
+            final addr = data['address'] as Map<String, dynamic>;
+            final houseNumber = addr['house_number'] ?? '';
+            final road = addr['road'] ?? '';
+            final city = addr['city'] ?? addr['town'] ?? addr['village'] ?? '';
+            final postcode = addr['postcode'] ?? '';
+            final country = addr['country'] ?? '';
+            
+            // Format clair : "17 Rue Basly Gennevilliers 92230 France"
+            final formatted = "${houseNumber != '' ? '$houseNumber ' : ''}$road $city $postcode $country".trim().replaceAll(RegExp(r'\s+'), ' ');
+            
+            setState(() {
+              _clinicAddressController.text = formatted;
+            });
+          } else if (data.containsKey('display_name')) {
             setState(() {
               _clinicAddressController.text = data['display_name'];
             });
