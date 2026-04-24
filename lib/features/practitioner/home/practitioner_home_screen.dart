@@ -9,6 +9,7 @@ import '../../../core/constants/colors.dart';
 import '../schedule/practitioner_schedule_screen.dart';
 import '../profile/practitioner_profile_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../prescriptions/prescription_create_screen.dart';
 
 class PractitionerHomeScreen extends StatefulWidget {
   const PractitionerHomeScreen({super.key});
@@ -149,7 +150,6 @@ class _PractitionerHomeScreenState extends State<PractitionerHomeScreen> {
               ),
             ],
           ),
-          
           if (appt.status == 'pending') ...[
             const SizedBox(height: 16),
             const Divider(height: 1),
@@ -186,6 +186,34 @@ class _PractitionerHomeScreenState extends State<PractitionerHomeScreen> {
                   ),
                 ),
               ],
+            ),
+          ] else if (appt.status == 'confirmed') ...[
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PrescriptionCreateScreen(
+                        patientId: appt.patientId,
+                        patientName: appt.patientName,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.description_outlined, size: 18),
+                label: const Text('Rédiger une ordonnance'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
             ),
           ]
         ],

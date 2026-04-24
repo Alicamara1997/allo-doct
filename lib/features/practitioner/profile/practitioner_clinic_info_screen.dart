@@ -114,24 +114,37 @@ class _PractitionerClinicInfoScreenState extends State<PractitionerClinicInfoScr
         ));
         
         if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-          if (data.containsKey('address')) {
-            final addr = data['address'] as Map<String, dynamic>;
-            final houseNumber = addr['house_number'] ?? '';
-            final road = addr['road'] ?? '';
-            final city = addr['city'] ?? addr['town'] ?? addr['village'] ?? '';
-            final postcode = addr['postcode'] ?? '';
-            final country = addr['country'] ?? '';
+          final data = json.decode(response.body) as Map<String, dynamic>;
+          final addr = data['address'] as Map<String, dynamic>?;
+          
+          if (addr != null) {
+            final houseNumber = addr['house_number']?.toString() ?? '';
+            final road = addr['road']?.toString() ?? '';
+            // On prend la ville la plus précise possible
+            final city = (addr['city'] ?? addr['town'] ?? addr['village'] ?? addr['municipality'] ?? '').toString();
+            final postcode = addr['postcode']?.toString() ?? '';
+            final country = addr['country']?.toString() ?? '';
             
-            // Format clair : "17 Rue Basly Gennevilliers 92230 France"
-            final formatted = "${houseNumber != '' ? '$houseNumber ' : ''}$road $city $postcode $country".trim().replaceAll(RegExp(r'\s+'), ' ');
+            // On s'assure que road ne contient pas de virgules (parfois Nominatim en met)
+            final cleanRoad = road.split(',')[0].trim();
+            final cleanCity = city.split(',')[0].trim();
+
+            // Format final : "9 Rue Gustave Caillebotte Asnières-sur-Seine 92600 France"
+            String formatted = "";
+            if (houseNumber.isNotEmpty) formatted += "$houseNumber ";
+            if (cleanRoad.isNotEmpty) formatted += "$cleanRoad ";
+            if (cleanCity.isNotEmpty) formatted += "$cleanCity ";
+            if (postcode.isNotEmpty) formatted += "$postcode ";
+            if (country.isNotEmpty) formatted += "$country";
+            
+            final finalAddress = formatted.trim().replaceAll(RegExp(r'\s+'), ' ');
             
             setState(() {
-              _clinicAddressController.text = formatted;
+              _clinicAddressController.text = finalAddress;
             });
           } else if (data.containsKey('display_name')) {
             setState(() {
-              _clinicAddressController.text = data['display_name'];
+              _clinicAddressController.text = data['display_name'].toString();
             });
           }
         }

@@ -13,6 +13,7 @@ import '../../../core/constants/colors.dart';
 import '../../../shared/widgets/practitioner_card.dart';
 import '../appointments/patient_appointments_screen.dart';
 import '../profile/patient_profile_screen.dart';
+import '../prescriptions/patient_prescriptions_screen.dart';
 
 class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
@@ -607,6 +608,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         children: [
           _buildHomeContent(context, user?.name ?? 'Patient'),
           const PatientAppointmentsScreen(),
+          const PatientPrescriptionsScreen(),
           const PatientProfileScreen(),
         ],
       ),
@@ -627,7 +629,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
             elevation: 0,
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Accueil'),
-              BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Rendez-vous'),
+              BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'RDV'),
+              BottomNavigationBarItem(icon: Icon(Icons.description_outlined), label: 'Ordonnances'),
               BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
             ],
           ),
