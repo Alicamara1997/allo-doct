@@ -11,6 +11,8 @@ import '../profile/practitioner_profile_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../prescriptions/prescription_create_screen.dart';
 import '../prescriptions/practitioner_prescriptions_screen.dart';
+import '../../../core/services/call_service.dart';
+import '../../../shared/widgets/call_screen.dart';
 
 class PractitionerHomeScreen extends StatefulWidget {
   const PractitionerHomeScreen({super.key});
@@ -151,7 +153,7 @@ class _PractitionerHomeScreenState extends State<PractitionerHomeScreen> {
               ),
             ],
           ),
-          if (appt.status == 'pending') ...[
+          if (appt.status.toLowerCase() == 'pending') ...[
             const SizedBox(height: 16),
             const Divider(height: 1),
             const SizedBox(height: 12),
@@ -188,7 +190,7 @@ class _PractitionerHomeScreenState extends State<PractitionerHomeScreen> {
                 ),
               ],
             ),
-          ] else if (appt.status == 'confirmed') ...[
+          ] else if (appt.status.toLowerCase() == 'confirmed') ...[
             const SizedBox(height: 16),
             const Divider(height: 1),
             const SizedBox(height: 12),
@@ -209,7 +211,32 @@ class _PractitionerHomeScreenState extends State<PractitionerHomeScreen> {
                 icon: const Icon(Icons.description_outlined, size: 18),
                 label: const Text('Rédiger une ordonnance'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  final user = context.read<AuthProvider>().currentUser;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CallScreen(
+                        currentUser: user!,
+                        remoteUserName: appt.patientName,
+                        callId: appt.id ?? 'default_call',
+                        isVideoCall: true,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.videocam, size: 18),
+                label: const Text('Rejoindre l\'appel'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

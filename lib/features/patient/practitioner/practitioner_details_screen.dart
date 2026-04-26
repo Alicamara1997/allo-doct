@@ -7,6 +7,8 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/appointment_service.dart';
 import '../../../core/models/schedule_model.dart';
 import '../../../core/services/schedule_service.dart';
+import '../../../core/services/call_service.dart';
+import '../../../shared/widgets/call_screen.dart';
 
 class PractitionerDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> practitionerData;
@@ -224,6 +226,37 @@ class _PractitionerDetailsScreenState extends State<PractitionerDetailsScreen> {
                           ),
                         ],
                       ),
+                    const SizedBox(height: 16),
+                    
+                    // Boutons d'appel rapides
+                    Row(
+                      children: [
+                        _buildCallActionButton(
+                          icon: Icons.videocam_rounded,
+                          label: 'Vidéo',
+                          color: AppColors.primary,
+                          onTap: () => _initiateCall(context, isVideo: true),
+                        ),
+                        const SizedBox(width: 12),
+                        _buildCallActionButton(
+                          icon: Icons.phone_rounded,
+                          label: 'Audio',
+                          color: AppColors.secondary,
+                          onTap: () => _initiateCall(context, isVideo: false),
+                        ),
+                        const SizedBox(width: 12),
+                        _buildCallActionButton(
+                          icon: Icons.chat_bubble_rounded,
+                          label: 'Message',
+                          color: Colors.grey.shade400,
+                          onTap: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('La messagerie sera bientôt disponible !'))
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 24),
 
                     // Apropos / Bio
@@ -462,6 +495,60 @@ class _PractitionerDetailsScreenState extends State<PractitionerDetailsScreen> {
             'Prendre Rendez-vous',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCallActionButton({
+    required IconData icon, 
+    required String label, 
+    required Color color, 
+    required VoidCallback onTap
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: color.withAlpha(20),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withAlpha(50)),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _initiateCall(BuildContext context, {required bool isVideo}) {
+    final currentUser = context.read<AuthProvider>().currentUser;
+    if (currentUser == null) return;
+
+    final callId = CallService.generateCallId(currentUser.uid, widget.practitionerId);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CallScreen(
+          currentUser: currentUser,
+          remoteUserName: widget.practitionerData['name'] ?? 'Praticien',
+          callId: callId,
+          isVideoCall: isVideo,
         ),
       ),
     );

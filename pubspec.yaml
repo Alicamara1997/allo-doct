@@ -52,8 +52,10 @@ dependencies:
   printing: ^5.14.3
   signature: ^6.3.0
   path_provider: ^2.1.5
-  flutter_email_sender: ^8.0.0
+#  flutter_email_sender: ^8.0.0
   url_launcher: ^6.3.2
+  agora_rtc_engine: ^6.3.2
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:

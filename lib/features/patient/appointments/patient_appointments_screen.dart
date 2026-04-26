@@ -5,9 +5,17 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/appointment_service.dart';
 import '../../../core/models/appointment_model.dart';
 import '../../../core/constants/colors.dart';
+import '../../../core/services/call_service.dart';
+import '../../../shared/widgets/call_screen.dart';
 
 class PatientAppointmentsScreen extends StatelessWidget {
   const PatientAppointmentsScreen({super.key});
+
+  void _initiateCall(BuildContext context, {required bool isVideo}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('La téléconsultation sera bientôt disponible !'))
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,8 +104,9 @@ class PatientAppointmentsScreen extends StatelessWidget {
                   
                   // Style selon le statut
                   Color statusColor = AppColors.warning;
-                  if (appt.status == 'confirmed') statusColor = AppColors.success;
-                  if (appt.status == 'cancelled') statusColor = AppColors.error;
+                  String currentStatus = appt.status.toLowerCase();
+                  if (currentStatus == 'confirmed') statusColor = AppColors.success;
+                  if (currentStatus == 'cancelled') statusColor = AppColors.error;
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 16),
@@ -188,6 +197,33 @@ class PatientAppointmentsScreen extends StatelessWidget {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
+                                  if (currentStatus == 'confirmed') ...[
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => CallScreen(
+                                              currentUser: user!,
+                                              remoteUserName: appt.practitionerName,
+                                              callId: appt.id ?? 'default_call',
+                                              isVideoCall: true,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.videocam, size: 18),
+                                      label: const Text('Rejoindre la séance', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.success,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        elevation: 2,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                  ],
                                   GestureDetector(
                                     onTap: () {
                                       // Logique Annulation (Ex: update status)
